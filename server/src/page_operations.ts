@@ -2,19 +2,12 @@ import * as fs from "fs";
 import * as url from "url";
 import * as config from "./config"
 import { Image } from "./models/image";
+import { ResponseObject } from "./interfaces"
 
 const path = config.IMAGES_PATH;
 let picOnPage: number;
 
-interface responseObj {
-    objects: object[];
-    page: number;
-    total: number;
-}
 
-interface Error{
-    errorMessage: string;
-}
 
 function getLimit(reqURL: string) {
     picOnPage = parseInt(url.parse(reqURL, true).query.limit as string);
@@ -34,7 +27,7 @@ export async function getImagesArr() { //получает массив стро�
 }
 
 
-async function getTotal(resObj: responseObj) { //вычисляет количество страниц 
+async function getTotal(resObj: ResponseObject) { //вычисляет количество страниц 
     const picturesAmount = await getArrayLength();         // назначает TOTAL
     const pagesAmount = Math.ceil(picturesAmount / picOnPage);
 
@@ -43,7 +36,7 @@ async function getTotal(resObj: responseObj) { //вычисляет количе
     return resObj;
 }
 
-function getCurrentPage(obj: responseObj, reqURL: string) { //назначает PAGE
+function getCurrentPage(obj: ResponseObject, reqURL: string) { //назначает PAGE
     const requestedPage = url.parse(reqURL, true).query.page as string;
     
     obj.page = +requestedPage;
@@ -51,10 +44,10 @@ function getCurrentPage(obj: responseObj, reqURL: string) { //назначает
     return obj;
 }
 
-async function getRequestedImages(resObj: responseObj) { //назначает OBJECTS
+async function getRequestedImages(resObj: ResponseObject) { //назначает OBJECTS
    
     const page = resObj.page;
-    const picArr = await getImagesArr();
+    // const picArr = await getImagesArr();
 
     let arrForPage = await Image.find({}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
 
@@ -63,7 +56,7 @@ async function getRequestedImages(resObj: responseObj) { //назначает OB
     return resObj;
 }
 
-function checkPage(resObj: responseObj) {
+function checkPage(resObj: ResponseObject) {
     if ((resObj.page > 0) && (resObj.page <= resObj.total)) {
         return resObj;
     } 
@@ -71,4 +64,4 @@ function checkPage(resObj: responseObj) {
     return false;
 }
 
-export {getTotal, getCurrentPage, getLimit, getRequestedImages, checkPage, getArrayLength, responseObj};
+export {getTotal, getCurrentPage, getLimit, getRequestedImages, checkPage, getArrayLength, ResponseObject};

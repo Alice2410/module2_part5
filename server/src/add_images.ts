@@ -1,4 +1,5 @@
 import { Image } from './models/image';
+import { ImageInterface } from './interfaces';
 import { getImagesArr } from './page_operations';
 import { getMetadata } from './get_metadata';
 
@@ -32,6 +33,6 @@ export async function saveImages(id?: string, path?: string) {
     
 export async function addImage (id: string, imagePath: string) {
     let metadata = await getMetadata(imagePath);
-    let image = await Image.create({id: id, path: imagePath, metadata: metadata})
+    let image: ImageInterface = await Image.create({id: id, path: imagePath, metadata: metadata})
     return image;
 }

@@ -1,5 +1,4 @@
 import * as http from "http";
-import * as rfs from "rotating-file-stream";
 import * as config from "./config";
 import * as pageOperations from './page_operations';
 import morgan from "morgan";
@@ -11,8 +10,9 @@ import { addNewUser } from "./add_new_user";
 import { checkUser } from './check_valid';
 import { saveUser } from "./add_users";
 import { saveImages } from "./add_images";
-import { responseObj } from "./page_operations";
+import { ResponseObject } from "./interfaces";
 import { deleteUserImages } from "./delete_images";
+import { accessLogStream } from "./generator";
 
 const token = { token: "token" };
 const PORT = 5000;
@@ -33,19 +33,7 @@ connectToDB()
     saveImages();
 })
 
-
-const generator = () => {
-    let ISOTime = (new Date(Date.now())).toISOString().slice(0, -5).replace( /[T]/, '_');
-
-    return ISOTime;
-};
-
-let accessLogStream = rfs.createStream( generator, {
-    interval: '1h',
-    path: config.LOG_PATH,
-});
-
-app.use(morgan('tiny', { stream: accessLogStream }))
+app.use(morgan('tiny', { stream: accessLogStream }));
 
 app.use('/', express.static(config.SCRIPTS_STATIC_PATH), express.static(config.SOURCES_STATIC_PATH));
 
@@ -63,7 +51,7 @@ app.post('/signup', async (req, res) => {
         res.sendStatus(401);
     }
     
-})
+});
 
 app.post('/authorization', async (req, res) => {
     let result = await checkUser(req.body);
@@ -76,11 +64,11 @@ app.post('/authorization', async (req, res) => {
         res.sendStatus(403);
     }
     
-})
+});
 
-app.use(upload())
+app.use(upload());
 
-app.use('/gallery', checkToken)
+app.use('/gallery', checkToken);
 
 app.post('/gallery', async (req, res) => {
     
@@ -115,15 +103,15 @@ app.get('/gallery', async (req, res) => {
             console.log(error);
         }
         
-})
+});
 
 app.use((req, res) => {
     res.redirect('http://localhost:5000/404.html')
-})
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-function sendNotFoundStatus (resObj: responseObj, res: http.ServerResponse) {
+function sendNotFoundStatus (resObj: ResponseObject, res: http.ServerResponse) {
 
     if (!pageOperations.checkPage(resObj)) {
         res.statusCode = 404;
@@ -134,7 +122,7 @@ function sendNotFoundStatus (resObj: responseObj, res: http.ServerResponse) {
     return resObj;
 }
 
-async function sendResponse (resObj: responseObj, reqUrl: string, res: http.ServerResponse) {
+async function sendResponse (resObj: ResponseObject, reqUrl: string, res: http.ServerResponse) {
     
     pageOperations.getLimit(reqUrl);
     await pageOperations.getTotal(resObj);
@@ -164,9 +152,9 @@ async function getUploadedFileName(file: UploadedFile, res: Response) {
         if(err){
             res.send (err);
         } else {
-            // await saveImages();
             let id = (number - 1).toString();
             let path = newFileName;
+            
             await saveImages(id, path);
             res.end() 
         }

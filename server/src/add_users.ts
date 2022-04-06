@@ -1,7 +1,7 @@
 import { User } from './models/user'
+import { UserLog } from './interfaces';
 import { validUsers} from './valid_users'
 import * as bcrypt from 'bcrypt'
-import { UserInfo } from 'os';
 
 export async function saveUser() {
     
@@ -19,7 +19,7 @@ export async function saveUser() {
                     const salt = await bcrypt.genSalt(10);
                     const password = await bcrypt.hash(validUsers[userEmail], salt);
                     console.log(validUsers[userEmail], " ", password, " salt: ", salt)
-                    let user = await User.create({email: userEmail, password: password, salt: salt})
+                    let user: UserLog = await User.create({email: userEmail, password: password, salt: salt})
                     console.log(user);
                 } catch(err) {
                     let error = err as Error;

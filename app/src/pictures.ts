@@ -32,7 +32,7 @@ async function goToNewGalleryPage() {
         );
         
         checkResponse(response);
-        let responseObj = await response.json();
+        let responseObj: Gallery = await response.json();
         createLinks(responseObj);
         createImages(responseObj);
     } catch(error) {
@@ -90,15 +90,19 @@ function createLinks(imagesObject: Gallery){
 function createImages(imagesObject: Gallery) {
         let imagesObjArray = imagesObject.objects;
         let imagesPathArr: string[] = [];
+
         for (let i = 0; i < imagesObjArray.length; i++) {
             let imageObject: ImageObject = imagesObjArray[i];
             let imagePath = imageObject.path;
+
             imagesPathArr.push(imagePath);
         }
+
         let imageSection = document.getElementById("photo-section");
 
         for ( let i = 0; i < imagesPathArr.length; i++) {
             let galleryImage = document.createElement('img');
+
             galleryImage.src = './resources/images/' + imagesPathArr[i];
             imageSection?.append(galleryImage);
         }
@@ -158,10 +162,9 @@ function writeErrorMessage (message: string, response: Response) {
     const errorMessage = document.getElementById('error-message');
         if (errorMessage) {
             errorMessage.innerHTML = message;
-            
             const toAuthorizationLink = document.getElementById('back-gallery');
-            if (toAuthorizationLink) {
 
+            if (toAuthorizationLink) {
                 toAuthorizationLink.classList.remove('back-link--disabled');
                 toAuthorizationLink.classList.add('aback-link--abled');
                 toAuthorizationLink.addEventListener("click", redirectToAuthorization);

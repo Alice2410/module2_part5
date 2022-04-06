@@ -1,11 +1,6 @@
 import { User } from './models/user'
 import * as bcrypt from 'bcrypt';
-
-interface UserLog {
-    email: string;
-    password: string;
-    salt: string
-}
+import { UserLog } from './interfaces';
 
 export async function checkUser(reqBody: UserLog) {
 
@@ -14,9 +9,9 @@ export async function checkUser(reqBody: UserLog) {
         const userIsExist = await User.exists({email: userEmail});
 
         if(userIsExist) {
-            const userData = await User.findOne({email: userEmail});
-            const validPassword: string = userData.password;
-            const userSalt: string = userData.salt;
+            const userData = await User.findOne({email: userEmail}) as UserLog;
+            const validPassword = userData.password;
+            const userSalt = userData.salt;
             const password = await bcrypt.hash(reqBody.password, userSalt); 
             const isValid = (password === validPassword);
 
