@@ -1,4 +1,5 @@
 import { User } from './models/user'
+import * as bcrypt from 'bcrypt'
 
 interface UserLog {
     email: string;
@@ -12,10 +13,9 @@ export async function addNewUser(reqBody: UserLog) {
         const userIsExist = await User.exists({email: userEmail});
 
         if(!userIsExist) {
-            // const userData = await User.findOne({email: userEmail});
-            // const validPassword: string = userData.password;
-            // const isValid = (reqBody.password === validPassword);
-            const newUser = await User.create({email: userEmail, password: reqBody.password});
+            const salt = await bcrypt.genSalt(10);
+            const password = await bcrypt.hash(reqBody.password, salt);
+            const newUser = await User.create({email: userEmail, password: password, salt: salt});
             console.log(newUser);
 
             return true;
