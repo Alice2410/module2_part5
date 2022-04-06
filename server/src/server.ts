@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import express, {NextFunction, Request, Response} from "express";
 import upload, { UploadedFile } from "express-fileupload";
+import { addNewUser } from "./add_new_user";
 import { checkUser } from './check_valid';
 import { saveUser } from "./add_users";
 import { saveImages } from "./add_images";
@@ -49,6 +50,20 @@ app.use(morgan('tiny', { stream: accessLogStream }))
 app.use('/', express.static(config.SCRIPTS_STATIC_PATH), express.static(config.SOURCES_STATIC_PATH));
 
 app.use(express.json());
+
+app.post('/signup', async (req, res) => {
+
+    let result = await addNewUser(req.body);
+    if (result) { 
+
+        res.sendStatus(200);
+    } 
+    if (!result) {
+
+        res.sendStatus(401);
+    }
+    
+})
 
 app.post('/authorization', async (req, res) => {
     let result = await checkUser(req.body);
