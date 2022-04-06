@@ -1,0 +1,139 @@
+openapi: 3.0.0
+info:
+  title: Gallery API
+  description: Student Gallery API
+  version: 1.0.0
+  contact:
+    email: devo4ka2410@gmail.com
+servers:
+  - url: http://localhost:5000/
+tags:
+  - name: authorization
+    description: request to authorize user
+  - name: gallery
+    description: get images for any page of gallery
+  - name: upload
+    description: upload images to gallery page
+paths:
+  /authorization:
+    description: Authorization
+    post:
+      tags:
+        - authorization
+      summary: get token
+      description: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/authorization-req'
+      responses:
+        '200':
+          description: Token successfully added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/authorization-res'
+        '403':
+          description: Invalid user data
+        '500':
+          description: Internal server error
+  /gallery:
+    description: Gallery page with pictures
+    get:
+      tags:
+        - gallery
+      summary: get images for gallery and information about gallery pages
+      description: ''
+      parameters:
+        - in: header
+          name: security
+          required: true
+          schema: 
+            type: string
+        - in: query
+          name: page
+          description: 'The page number that needs to be fetched. For first request it is 1'
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/gallery'
+        '403':
+          description: Invalid token
+        '404':
+          description: Page is not found
+        '500':
+          description: Internal server error
+    post:
+      tags:
+        - upload
+      summary: upload new image
+      description: ''
+      parameters:
+        - in: header
+          name: security
+          required: true
+          schema: 
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: 
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image successfully added
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+components:
+  schemas:
+    gallery:
+      title: Successful gallery response
+      type: object
+      properties:
+        objects:
+          $ref: '#/components/schemas/objects'
+        page:
+          type: integer
+          example: 1
+        total:
+          type: integer
+          example: 3
+    objects: 
+      type: array
+      items: 
+        type: string
+        example: '1.jpeg'
+    authorization-res:
+      type: object
+      properties:
+        token:
+          type: string
+    authorization-req:
+      type: object
+      properties:
+        email:
+          type: string
+          example: asergeev@flo.team
+        password:
+          type: string
+          example: jgF5tn4F
+    error:
+      type: object
+      properties:
+        errorMessage:
+          type: string

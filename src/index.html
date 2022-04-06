@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" sizes="32x32" href="./favicon.png">
+    <script defer src="validation.js"></script>
+    <script defer type="module" src="authorization.js"></script>
+    <title>Gallery</title>
+</head>
+<body>
+    <header>
+        <h1>Авторизация</h1>
+    </header>
+    <section class="authorization">
+        <form class="authorization-form" name="authorization-form" id="authorization-form">
+            <fieldset class="authorization-form__fieldset">
+              <div class="authorization-form__email authorization-form__input-wrapper">
+                <label class="authorization-form__label" for="email">Ваш e-mail:</label> <br>
+                <input class="authorization-form__text-input" type="email" name="email" id="email" placeholder="Укажите e-mail" required>
+                <div class="authorization-form__error" id="email-error"></div>
+              </div>
+              <div class="authorization-form__password authorization-form__input-wrapper">
+                <label class="authorization-form__label" for="password">Ваш пароль:</label> <br>
+                <input class="authorization-form__text-input" type="password" name="password" id="password" placeholder="Введите ваш пароль" minlength="8" value="jgF5tn4F" required>
+                <div class="authorization-form__error" id="password-error"></div>
+              </div>
+            </fieldset>
+            <button class="authorization-form__button" type="submit">
+                <span class="authorization-form__button-text">Log in</span>
+            </button>
+        </form>
+        <div id="token-error" class="token-error"></p>
+    </section>
+</body>
+</html>
