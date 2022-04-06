@@ -45,6 +45,20 @@
     min-width: 100px;
     padding: 10px;
     margin: 0 auto;
+    margin-bottom: 20px;
+    background: #eedec1;
+}
+
+.authorization-form__button:active {
+    background: #decdae;
+}
+
+.authorization-form__button--signup {
+    background-color: #ded4c9;
+}
+
+.authorization-form__button--signup:active {
+    background-color: #cabeb1;
 }
 
 body {
@@ -87,9 +101,8 @@ img {
 button {
     padding: 5px 10px;
     text-decoration: none;
-    border: 2px solid #d6c19b;
+    border: 2px solid #cfc4b2;
     border-radius: 10px;
-    background: #eedec1;
     margin-right: 10px;
 }
 
@@ -109,7 +122,7 @@ a {
 .token-error {
     font-size: 20px;
     font-weight: 700;
-    color: red;
+    color: #925353;
     display: flex;
     justify-self: center;
     padding: 20px;
