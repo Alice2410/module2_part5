@@ -21,17 +21,7 @@ const app = express();
 dotenv.config()
 const dbURL = process.env.DB_CONN as string;
 
-async function connectToDB() {
-    await mongoose.connect(dbURL);
-    console.log('connected to DB'); 
-}
-
-connectToDB()
-.then(() => deleteUserImages())
-.then(() => {
-    saveUser();
-    saveImages();
-})
+startServer();
 
 app.use(morgan('tiny', { stream: accessLogStream }));
 
@@ -55,7 +45,8 @@ app.post('/signup', async (req, res) => {
 
 app.post('/authorization', async (req, res) => {
     let result = await checkUser(req.body);
-    if (result) { //проверка данных пользователя
+
+    if (result) {
 
         res.statusCode = 200;
         res.end(JSON.stringify(token));
@@ -74,15 +65,14 @@ app.post('/gallery', async (req, res) => {
     
     try{
         if(!req.files) {
-            throw new Error('Ошибка загрузки. Картинка не сохранена')
+            throw new Error('Ошибка загрузки. Картинка не сохранена');
         } else {
-            
             let file = req.files.file as UploadedFile;
 
             await getUploadedFileName(file, res);
         }
     } catch(err) {
-        let error = err as Error
+        let error = err as Error;
         res.status(500).send(error);
     }
     
@@ -106,16 +96,29 @@ app.get('/gallery', async (req, res) => {
 });
 
 app.use((req, res) => {
-    res.redirect('http://localhost:5000/404.html')
+    res.redirect('http://localhost:5000/404.html');
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+async function startServer() {
+    await connectToDB();
+    await deleteUserImages();
+    await saveUser();
+    await saveImages();
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+}
+
+async function connectToDB() {
+    await mongoose.connect(dbURL);
+    console.log('connected to DB'); 
+}
 
 function sendNotFoundStatus (resObj: ResponseObject, res: http.ServerResponse) {
 
     if (!pageOperations.checkPage(resObj)) {
         res.statusCode = 404;
         res.end();
+
         return false;
     } 
 
@@ -144,7 +147,6 @@ async function getUploadedFileName(file: UploadedFile, res: Response) {
     let fileName = file.name;
     let noSpaceFileName = fileName.replace(/\s/g, '');
     let number = await pageOperations.getArrayLength() + 1;
-
     let newFileName = 'user-' + number + '_' +  noSpaceFileName;
 
     file.mv((config.IMAGES_PATH + newFileName), async (err: Error) => {
@@ -156,7 +158,7 @@ async function getUploadedFileName(file: UploadedFile, res: Response) {
             let path = newFileName;
             
             await saveImages(id, path);
-            res.end() 
+            res.end(); 
         }
     })
 }
@@ -165,7 +167,7 @@ function checkToken (req: Request, res: Response, next: NextFunction) {
     const headers = req.headers;
 
     if (headers.authorization === 'token') {  
-        next()
+        next();
     } else {
         res.sendStatus(403);
         next()

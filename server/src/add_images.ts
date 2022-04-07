@@ -5,6 +5,7 @@ import { getMetadata } from './get_metadata';
 
 export async function saveImages(id?: string, path?: string) {
     let imagesPathsArr = await getImagesArr();
+
     if( id && path) {
         let result = await addImage(id, path);
         console.log(result)
@@ -19,7 +20,7 @@ export async function saveImages(id?: string, path?: string) {
             try{
                 let imagePath = imagesPathsArr[i];
                 let id = i.toString();
-                let image = await addImage(id, imagePath)
+                let image = await addImage(id, imagePath);
                 console.log('image obj: ' + image)
             } catch(err) {
                 let error = err as Error;
@@ -33,6 +34,7 @@ export async function saveImages(id?: string, path?: string) {
     
 export async function addImage (id: string, imagePath: string) {
     let metadata = await getMetadata(imagePath);
-    let image: ImageInterface = await Image.create({id: id, path: imagePath, metadata: metadata})
+    let image: ImageInterface = await Image.create({id: id, path: imagePath, metadata: metadata});
+
     return image;
 }

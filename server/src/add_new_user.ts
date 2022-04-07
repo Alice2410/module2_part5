@@ -20,6 +20,6 @@ export async function addNewUser(reqBody: UserLog) {
         return false;
     } catch(err) {
         let error = err as Error;
-        console.log(error.message)
+        console.log(error.message);
     }
 }
