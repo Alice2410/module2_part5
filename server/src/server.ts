@@ -10,7 +10,6 @@ import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
 import { User } from './models/user';
 import { UserLog } from './interfaces';
-import { checkUser } from './check_valid';
 import { saveUser } from "./add_users";
 import { saveImages } from "./add_images";
 import { ResponseObject } from "./interfaces";
@@ -19,10 +18,14 @@ import { accessLogStream } from "./generator";
 import passport from "passport";
 import LocalPassport from "passport-local";
 import jwt from "jsonwebtoken";
+import jwt_decode from "jwt-decode";
+import passportJWT from "passport-jwt";
 
 const PORT = 5000;
 const app = express();
 const LocalStrategy = LocalPassport.Strategy;
+const JWTStrategy = passportJWT.Strategy;
+const ExtractJWT = passportJWT.ExtractJwt;
 
 dotenv.config()
 const dbURL = process.env.DB_CONN as string;
@@ -54,6 +57,35 @@ passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"}
     }
 ));
 
+passport.use(new JWTStrategy({
+    jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.TOKEN_KEY,
+  },
+
+   async function (jwtPayload, done) {
+    console.log('in jwt')
+    let email = jwtPayload.sub;
+    console.log('jwt payload', email)
+    let user = await User.findOne({email: email})
+    if (user) {
+        console.log('Data is fine')
+        return done(null, user);
+    }
+    console.log('Data is NOT fine')
+    return done(null, false)
+
+//     return User.findOne({email: email})
+//     .then(user => 
+//      {
+//        return done(null, user);
+//      }
+//    ).catch(err => 
+//    {
+//      return done(err);
+//    });
+  }
+  ))
+
 app.use(passport.initialize());
 
 app.use(morgan('tiny', { stream: accessLogStream }));
@@ -81,8 +113,8 @@ app.post('/authorization', passport.authenticate('local', {
 }), async (req, res) => {
     const tokenKey = process.env.TOKEN_KEY as string;
     console.log(tokenKey);
-    let token = jwt.sign(req.body.email, tokenKey);
-    console.log(token);
+    let token = jwt.sign({sub: req.body.email}, tokenKey);
+    console.log('HERE' , token);
 
     res.statusCode = 200;
     res.end(JSON.stringify({token: token}));
@@ -91,9 +123,13 @@ app.post('/authorization', passport.authenticate('local', {
 
 app.use(upload());
 
-app.use('/gallery', checkToken);
+// app.use('/gallery', checkToken);
+// app.use('/gallery', passport.authenticate('jwt', {session: false}), (req, res, next) => {
+//     console.log('Data is fine')
+//     next();
+// });
 
-app.post('/gallery', async (req, res) => {
+app.post('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
     
     try{
         if(!req.files) {
@@ -110,7 +146,7 @@ app.post('/gallery', async (req, res) => {
     
 });
 
-app.get('/gallery', async (req, res) => {
+app.get('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
                
         const reqUrl = req.url;
         const resObj = {
@@ -197,8 +233,12 @@ async function getUploadedFileName(file: UploadedFile, res: Response) {
 
 function checkToken (req: Request, res: Response, next: NextFunction) {
     const headers = req.headers;
+    let token = headers.authorization as string;
+    console.log('token: ' + token);
+    let decoded = jwt_decode(token);
+    console.log('DECODED: ' + decoded);
 
-    if (headers.authorization === 'token') {  
+    if (headers.authorization === 'eyJhbGciOiJIUzI1NiJ9.YXNlcmdlZXZAZmxvLnRlYW0.fcyE6MYo2dgmse964dXxH289vkUIP8oXhQUTaHIVdJI') {  
         next();
     } else {
         res.sendStatus(403);

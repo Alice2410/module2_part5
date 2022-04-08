@@ -26,7 +26,7 @@ async function goToNewGalleryPage() {
                 method: "GET",
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': tokenObject.token
+                    'Authorization': 'Bearer ' + tokenObject.token
                 }
             }
         );
@@ -57,7 +57,7 @@ async function uploadImage() {
             {
                 method: "POST",
                 headers: {
-                    'Authorization': tokenObject.token
+                    'Authorization': 'Bearer ' + tokenObject.token
                 },
                 body: formData
             }
@@ -130,7 +130,7 @@ function checkResponse (response: Response) {
 
     let errorMessage: string;
 
-    if (response.status === 403) {
+    if (response.status === 401) {
         errorMessage = "Токен некорректен или отсутствует. Повторите авторизацию."
         writeErrorMessage (errorMessage, response);
     } else if (response.status === 404) {
