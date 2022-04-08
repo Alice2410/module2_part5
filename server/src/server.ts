@@ -4,24 +4,57 @@ import * as pageOperations from './page_operations';
 import morgan from "morgan";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import * as bcrypt from 'bcrypt'
 import express, {NextFunction, Request, Response} from "express";
 import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
+import { User } from './models/user';
+import { UserLog } from './interfaces';
 import { checkUser } from './check_valid';
 import { saveUser } from "./add_users";
 import { saveImages } from "./add_images";
 import { ResponseObject } from "./interfaces";
 import { deleteUserImages } from "./delete_images";
 import { accessLogStream } from "./generator";
+import passport from "passport";
+import LocalPassport from "passport-local";
+import jwt from "jsonwebtoken";
 
-const token = { token: "token" };
 const PORT = 5000;
 const app = express();
+const LocalStrategy = LocalPassport.Strategy;
 
 dotenv.config()
 const dbURL = process.env.DB_CONN as string;
 
 startServer();
+
+passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"},
+    async function(email, password, done) {  
+        try {
+            const userIsExist = await User.exists({email: email});
+            
+            if(userIsExist) {
+                const userData = await User.findOne({email: email}) as UserLog;
+                console.log(userData)
+                const validPassword = userData.password;
+                const userSalt = userData.salt;
+                const userPassword = await bcrypt.hash(password, userSalt); 
+                if (userPassword === validPassword) {
+                    return done(null, { user: email });
+                }
+            } 
+
+            return done(null, false);
+
+        } catch(err) {
+            let error = err as Error;
+            console.log(error.message)
+        }
+    }
+));
+
+app.use(passport.initialize());
 
 app.use(morgan('tiny', { stream: accessLogStream }));
 
@@ -43,17 +76,16 @@ app.post('/signup', async (req, res) => {
     
 });
 
-app.post('/authorization', async (req, res) => {
-    let result = await checkUser(req.body);
+app.post('/authorization', passport.authenticate('local', {
+    session:false
+}), async (req, res) => {
+    const tokenKey = process.env.TOKEN_KEY as string;
+    console.log(tokenKey);
+    let token = jwt.sign(req.body.email, tokenKey);
+    console.log(token);
 
-    if (result) {
-
-        res.statusCode = 200;
-        res.end(JSON.stringify(token));
-    } else {
-
-        res.sendStatus(403);
-    }
+    res.statusCode = 200;
+    res.end(JSON.stringify({token: token}));
     
 });
 

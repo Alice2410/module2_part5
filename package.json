@@ -10,5 +10,10 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.23"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^8.5.1",
+    "passport": "0.5.2",
+    "passport-local": "1.0.0"
   }
 }
