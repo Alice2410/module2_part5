@@ -4,7 +4,7 @@ import { validUsers} from './valid_users'
 import * as bcrypt from 'bcrypt'
 
 export async function saveUser() {
-    
+    console.log('saving users')
     try {
         let userEmailsArr = Object.keys(validUsers);
 

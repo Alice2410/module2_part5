@@ -19,6 +19,7 @@
     "@types/passport-local": "^1.0.34",
     "dotenv": "16.0.0",
     "jwt-decode": "3.1.2",
+    "mongodb": "4.5.0",
     "mongoose": "6.2.9",
     "passport-jwt": "4.0.0",
     "typescript": "4.6.3"

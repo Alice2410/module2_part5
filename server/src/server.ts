@@ -20,6 +20,7 @@ import LocalPassport from "passport-local";
 import jwt from "jsonwebtoken";
 import jwt_decode from "jwt-decode";
 import passportJWT from "passport-jwt";
+import { ObjectId } from "mongodb";
 
 const PORT = 5000;
 const app = express();
@@ -61,30 +62,20 @@ passport.use(new JWTStrategy({
     jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
     secretOrKey: process.env.TOKEN_KEY,
   },
-
    async function (jwtPayload, done) {
     console.log('in jwt')
     let email = jwtPayload.sub;
     console.log('jwt payload', email)
     let user = await User.findOne({email: email})
+
     if (user) {
         console.log('Data is fine')
         return done(null, user);
     }
     console.log('Data is NOT fine')
     return done(null, false)
-
-//     return User.findOne({email: email})
-//     .then(user => 
-//      {
-//        return done(null, user);
-//      }
-//    ).catch(err => 
-//    {
-//      return done(err);
-//    });
   }
-  ))
+))
 
 app.use(passport.initialize());
 
@@ -123,21 +114,18 @@ app.post('/authorization', passport.authenticate('local', {
 
 app.use(upload());
 
-// app.use('/gallery', checkToken);
-// app.use('/gallery', passport.authenticate('jwt', {session: false}), (req, res, next) => {
-//     console.log('Data is fine')
-//     next();
-// });
-
 app.post('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
-    
+    let user = req.user as UserLog;
+    console.log('user: ' + user._id);
+    let id = user._id;
     try{
         if(!req.files) {
             throw new Error('Ошибка загрузки. Картинка не сохранена');
         } else {
             let file = req.files.file as UploadedFile;
-
-            await getUploadedFileName(file, res);
+            if(id) {
+                await getUploadedFileName(id, file, res);
+            }
         }
     } catch(err) {
         let error = err as Error;
@@ -168,6 +156,7 @@ app.use((req, res) => {
 });
 
 async function startServer() {
+    console.log('start server');
     await connectToDB();
     await deleteUserImages();
     await saveUser();
@@ -210,7 +199,7 @@ async function sendResponse (resObj: ResponseObject, reqUrl: string, res: http.S
     }
 }
 
-async function getUploadedFileName(file: UploadedFile, res: Response) {
+async function getUploadedFileName(userId: ObjectId, file: UploadedFile, res: Response) {
     
     let fileName = file.name;
     let noSpaceFileName = fileName.replace(/\s/g, '');
@@ -224,24 +213,24 @@ async function getUploadedFileName(file: UploadedFile, res: Response) {
         } else {
             let id = (number - 1).toString();
             let path = newFileName;
-            
-            await saveImages(id, path);
+            console.log('file move: ' + userId);
+            await saveImages(id, path, userId);
             res.end(); 
         }
     })
 }
 
-function checkToken (req: Request, res: Response, next: NextFunction) {
-    const headers = req.headers;
-    let token = headers.authorization as string;
-    console.log('token: ' + token);
-    let decoded = jwt_decode(token);
-    console.log('DECODED: ' + decoded);
+// function checkToken (req: Request, res: Response, next: NextFunction) {
+//     const headers = req.headers;
+//     let token = headers.authorization as string;
+//     console.log('token: ' + token);
+//     let decoded = jwt_decode(token);
+//     console.log('DECODED: ' + decoded);
 
-    if (headers.authorization === 'eyJhbGciOiJIUzI1NiJ9.YXNlcmdlZXZAZmxvLnRlYW0.fcyE6MYo2dgmse964dXxH289vkUIP8oXhQUTaHIVdJI') {  
-        next();
-    } else {
-        res.sendStatus(403);
-        next()
-    }
-}
+//     if (headers.authorization === 'eyJhbGciOiJIUzI1NiJ9.YXNlcmdlZXZAZmxvLnRlYW0.fcyE6MYo2dgmse964dXxH289vkUIP8oXhQUTaHIVdJI') {  
+//         next();
+//     } else {
+//         res.sendStatus(403);
+//         next()
+//     }
+// }
