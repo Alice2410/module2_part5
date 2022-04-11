@@ -1,12 +1,15 @@
 {
   "scripts": {
-    "start": "npm run build && node ./build/server/server.js",
+    "start": "npm run copyStorage && npm run makeStorage && npm run build && node ./build/server/server.js",
     "build": "rm -R ./build || true && npm run build:back && npm run build:front && mkdir ./build && npm run copyAllBuilds && npm run copySrc && npm run copyModulesDir",
     "build:back": "cd ./server && npm run build",
     "build:front": "cd ./app && npm run build",
     "copyAllBuilds": "cp -R ./server/build/ ./build/server && cp -R ./app/build/ ./build/app",
     "copySrc": "cp -R ./src ./build/pages",
-    "copyModulesDir": "cp -R ./server/node_modules ./build/node_modules"
+    "copyModulesDir": "cp -R ./server/node_modules ./build/node_modules",
+    "copyStorage": "cp -R ./storage/* ./src/resources/images || true",
+    "makeStorage": "rm -R ./storage || true && mkdir ./storage"
+    
   },
   "devDependencies": {
     "@types/node": "^17.0.23"

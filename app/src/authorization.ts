@@ -73,14 +73,18 @@ async function loginWithToken() {
 
 function redirect() {
     const currentPage = window.location; //currentPage: http://localhost:5000/ || http://localhost:5000/index.html?page=2
-    const pageNumber = currentPage.search; //?page=2
+    const params = currentPage.search; //?page=2
 
     authorizationForm?.removeEventListener("submit", startAuthorization);
 
-    if (pageNumber) {
-        window.location.href = "gallery.html" + pageNumber;
+    if (params) {
+        window.location.href = "gallery.html" + params;
     } else {
-        window.location.href = "gallery.html" + "?page=1" + "&limit=2" + "&filter=false";
+        let searchParams = new URLSearchParams(params);
+        searchParams.append('page', '1');
+        searchParams.append('limit', '2');
+        searchParams.append('filter', 'false');
+        window.location.href = "gallery.html?" + searchParams;
     }
 }
 

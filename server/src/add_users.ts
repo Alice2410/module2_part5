@@ -8,9 +8,8 @@ export async function saveUser() {
     try {
         let userEmailsArr = Object.keys(validUsers);
 
-        for (let i = 0; i < userEmailsArr.length; i++) {
+        for (const userEmail of userEmailsArr) {
             
-            let userEmail = userEmailsArr[i];
             let userIsExist = await User.exists({email: userEmail});
 
             if (!userIsExist) {

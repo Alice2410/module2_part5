@@ -82,11 +82,8 @@ function checkPage(resObj: ResponseObject) {
 }
 
 function makeImagesPathsArr(imgObjectsArr: ImageInterface[]) {
-    let pathsArr = [];
-    for (let i = 0; i < imgObjectsArr.length; i++) {
-        pathsArr.push(imgObjectsArr[i].path);
-    }
-    console.log(pathsArr);
+    let pathsArr = imgObjectsArr.map(imgObject => imgObject.path);
+
     return pathsArr;
 }
 

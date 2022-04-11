@@ -2,16 +2,17 @@ import * as http from "http";
 import * as config from "./config";
 import * as pageOperations from './page_operations';
 import morgan from "morgan";
+import fs from "fs";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt'
-import express, {NextFunction, Request, Response} from "express";
+import express, { Response } from "express";
 import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
 import { User } from './models/user';
 import { UserLog } from './interfaces';
 import { saveUser } from "./add_users";
-import { saveImages } from "./add_images";
+import { saveImagesToDB } from "./add_images";
 import { ResponseObject } from "./interfaces";
 import { deleteUserImages } from "./delete_images";
 import { accessLogStream } from "./generator";
@@ -20,9 +21,11 @@ import LocalPassport from "passport-local";
 import jwt from "jsonwebtoken";
 import passportJWT from "passport-jwt";
 import { ObjectId } from "mongodb";
+import path from "path";
 
 const PORT = 5000;
 const app = express();
+
 const LocalStrategy = LocalPassport.Strategy;
 const JWTStrategy = passportJWT.Strategy;
 const ExtractJWT = passportJWT.ExtractJwt;
@@ -153,9 +156,9 @@ app.use((req, res) => {
 async function startServer() {
     console.log('start server');
     await connectToDB();
-    await deleteUserImages();
+    // await deleteUserImages();
     await saveUser();
-    await saveImages();
+    await saveImagesToDB();
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 }
@@ -206,8 +209,21 @@ async function getUploadedFileName(userId: ObjectId, file: UploadedFile, res: Re
             res.send (err);
         } else {
             let path = newFileName;
-            await saveImages(path, userId);
+            await saveImagesToDB(path, userId);
             res.end(); 
         }
+        console.log((config.IMAGES_PATH + newFileName), path.join(config.IMAGES_PATH, "../../../../storage/", ));
+        console.log('saved')
+        await copyImage(newFileName)
     })
+
+    
+}
+
+async function copyImage(fileName: string) {
+    let from = path.join(config.IMAGES_PATH , fileName);
+    let dest = path.join(config.IMAGES_PATH, "../../../../storage/", fileName);
+    console.log('from: ' + from);
+    console.log('dest: ' + dest);
+    await fs.promises.copyFile(from, dest);
 }

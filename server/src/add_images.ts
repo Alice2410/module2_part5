@@ -4,7 +4,7 @@ import { getImagesArr } from './page_operations';
 import { getMetadata } from './get_metadata';
 import { ObjectId } from 'mongodb';
 
-export async function saveImages(path?: string, userID?: ObjectId) {
+export async function saveImagesToDB(path?: string, userID?: ObjectId) {
     let imagesPathsArr = await getImagesArr();
 
     if( path && userID) {
@@ -12,13 +12,13 @@ export async function saveImages(path?: string, userID?: ObjectId) {
         let result = await addImage(path, owner);
     } else {
     
-    for(let i = 0; i < imagesPathsArr.length; i++) {
-        let imageIsExist = await Image.exists({path: imagesPathsArr[i]});
+    for(const imgPath of imagesPathsArr) {
+        let imageIsExist = await Image.exists({path: imgPath});
 
         if(!imageIsExist) {
             try{
-                let imagePath = imagesPathsArr[i];
-                let image = await addImage(imagePath);
+
+                let image = await addImage(imgPath);
                 
             } catch(err) {
                 let error = err as Error;

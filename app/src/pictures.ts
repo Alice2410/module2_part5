@@ -47,17 +47,17 @@ async function goToNewGalleryPage() {
 }
 
 async function uploadImage() {
-    //-------------POST FOR PICS
     let postUrl = '/gallery';
+
     if (uploadFile.files) {
+
         for (const file of uploadFile.files) {
             formData.append("file", file);
         }
     }
     
-
     try {
-        const response = await fetch( postUrl,
+        await fetch( postUrl,
             {
                 method: "POST",
                 headers: {
@@ -91,21 +91,14 @@ function createLinks(imagesObject: Gallery){
 
 function createImages(imagesObject: Gallery) {
         let imagesObjArray = imagesObject.objects;
-        let imagesPathArr: string[] = [];
-
-        for (let i = 0; i < imagesObjArray.length; i++) {
-            let imageObject: ImageObject = imagesObjArray[i];
-            let imagePath = imageObject.path;
-
-            imagesPathArr.push(imagePath);
-        }
+        let imagesPathsArr = imagesObjArray.map(imageObject => imageObject.path);
 
         let imageSection = document.getElementById("photo-section");
 
-        for ( let i = 0; i < imagesPathArr.length; i++) {
+        for (const imgPath of imagesPathsArr) {
             let galleryImage = document.createElement('img');
-
-            galleryImage.src = './resources/images/' + imagesPathArr[i];
+            
+            galleryImage.src = './resources/images/' + imgPath;
             imageSection?.append(galleryImage);
         }
 }
@@ -155,10 +148,9 @@ function checkLocalStorage () {
 function createNewAddressOfCurrentPage(e: Event) {
     let currentPage = window.location.href;
     let params = new URL(currentPage).searchParams;
-    let limit = params.get('limit');
-    let filter = params.get('filter');
-    let number = (e.target as HTMLLinkElement).textContent;
-    window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=" + filter;
+    let number = (e.target as HTMLLinkElement).textContent as string;
+    params.set('page', number);
+    window.location.href = "gallery.html?" + params;
 }
 
 function writeErrorMessage (message: string, response: Response) {
@@ -179,14 +171,16 @@ function writeErrorMessage (message: string, response: Response) {
 function changeFilter(e: Event) {
     let currentPage = window.location.href;
     let params = new URL(currentPage).searchParams;
-    let number = params.get('page');
-    let limit = params.get('limit');
     let filter = params.get('filter');
+
     if (filter === 'false'){
-        window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=true";   
+        params.set('filter', 'true');
+        window.location.href = "gallery.html?" + params;
     } 
-    if (filter === 'true'){
-        window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=false";  
+
+    if (filter === 'true'){ 
+        params.set('filter', 'false');
+        window.location.href = "gallery.html?" + params;
     }
 }
 
