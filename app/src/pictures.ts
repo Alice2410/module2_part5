@@ -1,14 +1,18 @@
+import { url } from "inspector";
 import { Token, basicGalleryURL, Gallery, tokenTimestampKey, localStorageTokenKey, ImageObject } from "./url.js";
 const linksList = document.getElementById('links');
 const uploadImageForm = document.getElementById('upload') as HTMLFormElement;
 const uploadFile = document.getElementById("file") as HTMLInputElement;
+const filterButton = document.getElementById("filter-button") as HTMLButtonElement;
 let formData = new FormData();
 let tokenObject: Token;
 
 setInterval(checkTokenIs, 1000);
 checkLocalStorage();
 goToNewGalleryPage();
+renderButton();
 linksList?.addEventListener("click", createNewAddressOfCurrentPage);
+filterButton?.addEventListener("click", changeFilter);
 uploadImageForm?.addEventListener("submit", startUpload);
 
 function startUpload(e: Event) {
@@ -71,8 +75,6 @@ async function uploadImage() {
         console.log(err.message);
     }
 }
-
-
 
 function createLinks(imagesObject: Gallery){
     let totalPages = imagesObject.total;
@@ -154,8 +156,9 @@ function createNewAddressOfCurrentPage(e: Event) {
     let currentPage = window.location.href;
     let params = new URL(currentPage).searchParams;
     let limit = params.get('limit');
+    let filter = params.get('filter');
     let number = (e.target as HTMLLinkElement).textContent;
-    window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit;
+    window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=" + filter;
 }
 
 function writeErrorMessage (message: string, response: Response) {
@@ -172,4 +175,26 @@ function writeErrorMessage (message: string, response: Response) {
         }  
     throw new Error(`${response.status} — ${response.body}`);
 }
-            
+    
+function changeFilter(e: Event) {
+    let currentPage = window.location.href;
+    let params = new URL(currentPage).searchParams;
+    let number = params.get('page');
+    let limit = params.get('limit');
+    let filter = params.get('filter');
+    if (filter === 'false'){
+        window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=true";   
+    } 
+    if (filter === 'true'){
+        window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit + "&filter=false";  
+    }
+}
+
+function renderButton() {
+    let filter = new URL(window.location.href).searchParams.get('filter');
+    if (filter === 'true'){
+        filterButton.textContent = 'Показать все картинки';
+    } else {
+        filterButton.textContent = 'Показать мои картинки';
+    }
+}

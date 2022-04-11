@@ -80,7 +80,7 @@ function redirect() {
     if (pageNumber) {
         window.location.href = "gallery.html" + pageNumber;
     } else {
-        window.location.href = "gallery.html" + "?page=1" + "&limit=2";
+        window.location.href = "gallery.html" + "?page=1" + "&limit=2" + "&filter=false";
     }
 }
 

@@ -2,33 +2,45 @@ import * as fs from "fs";
 import * as url from "url";
 import * as config from "./config"
 import { Image } from "./models/image";
+import { ImageInterface } from "./interfaces";
 import { ResponseObject } from "./interfaces"
+import { ObjectId } from "mongodb";
 
 const path = config.IMAGES_PATH;
 let picOnPage: number;
 
-
-
-function getLimit(reqURL: string) {
+function getLimit(reqURL: string) { 
     picOnPage = parseInt(url.parse(reqURL, true).query.limit as string);
 }
 
-async function getArrayLength () { //вычисляет количество картинок всего
-    const imagesArr = await getImagesArr();
-    const arrLength = imagesArr.length;
+async function getArrayLength (id: ObjectId, reqUrl: string) { 
+    const filter = url.parse(reqUrl, true).query.filter as string;
     
-    return arrLength;
+    let imagesObjectsArr;
+    if (filter === 'false') {
+        imagesObjectsArr = await Image.find({$or: [ {'owner': id}, {'owner': null}]}, null, {});
+        console.log('без фильтра');
+        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
+
+        return imagesArr.length;
+    } else {
+        imagesObjectsArr = await Image.find({'owner': id}, null, {});
+        console.log('с фильтром');
+        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
+
+        return imagesArr.length;
+    }
 }
 
-export async function getImagesArr() { //получает массив строк с адресами всех картинок
+export async function getImagesArr() { 
     let imagesArr = await fs.promises.readdir(path);
     
     return imagesArr;
 }
 
 
-async function getTotal(resObj: ResponseObject) { //вычисляет количество страниц 
-    const picturesAmount = await getArrayLength();         // назначает TOTAL
+async function getTotal(reqUrl: string ,resObj: ResponseObject, id: ObjectId) { 
+    const picturesAmount = await getArrayLength(id, reqUrl);         
     const pagesAmount = Math.ceil(picturesAmount / picOnPage);
 
     resObj.total = pagesAmount;
@@ -36,7 +48,7 @@ async function getTotal(resObj: ResponseObject) { //вычисляет коли�
     return resObj;
 }
 
-function getCurrentPage(obj: ResponseObject, reqURL: string) { //назначает PAGE
+function getCurrentPage(obj: ResponseObject, reqURL: string) {
     const requestedPage = url.parse(reqURL, true).query.page as string;
     
     obj.page = +requestedPage;
@@ -44,13 +56,18 @@ function getCurrentPage(obj: ResponseObject, reqURL: string) { //назнача�
     return obj;
 }
 
-async function getRequestedImages(resObj: ResponseObject) { //назначает OBJECTS
+async function getRequestedImages(reqUrl: string , resObj: ResponseObject, id: ObjectId) { 
    
     const page = resObj.page;
-    // const picArr = await getImagesArr();
+    const filter = url.parse(reqUrl, true).query.filter as string;
+    let arrForPage;
 
-    let arrForPage = await Image.find({}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
-
+    if (filter === "false") {
+        arrForPage = await Image.find({$or: [ {'owner': id}, {'owner': null}]}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
+    } else {
+        arrForPage = await Image.find({'owner': id}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
+    }
+    
     resObj.objects = arrForPage as unknown as object[];
 
     return resObj;
@@ -62,6 +79,15 @@ function checkPage(resObj: ResponseObject) {
     } 
 
     return false;
+}
+
+function makeImagesPathsArr(imgObjectsArr: ImageInterface[]) {
+    let pathsArr = [];
+    for (let i = 0; i < imgObjectsArr.length; i++) {
+        pathsArr.push(imgObjectsArr[i].path);
+    }
+    console.log(pathsArr);
+    return pathsArr;
 }
 
 export {getTotal, getCurrentPage, getLimit, getRequestedImages, checkPage, getArrayLength, ResponseObject};

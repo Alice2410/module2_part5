@@ -18,7 +18,6 @@ import { accessLogStream } from "./generator";
 import passport from "passport";
 import LocalPassport from "passport-local";
 import jwt from "jsonwebtoken";
-import jwt_decode from "jwt-decode";
 import passportJWT from "passport-jwt";
 import { ObjectId } from "mongodb";
 
@@ -63,16 +62,13 @@ passport.use(new JWTStrategy({
     secretOrKey: process.env.TOKEN_KEY,
   },
    async function (jwtPayload, done) {
-    console.log('in jwt')
     let email = jwtPayload.sub;
-    console.log('jwt payload', email)
     let user = await User.findOne({email: email})
 
     if (user) {
-        console.log('Data is fine')
         return done(null, user);
     }
-    console.log('Data is NOT fine')
+
     return done(null, false)
   }
 ))
@@ -103,9 +99,7 @@ app.post('/authorization', passport.authenticate('local', {
     session:false
 }), async (req, res) => {
     const tokenKey = process.env.TOKEN_KEY as string;
-    console.log(tokenKey);
     let token = jwt.sign({sub: req.body.email}, tokenKey);
-    console.log('HERE' , token);
 
     res.statusCode = 200;
     res.end(JSON.stringify({token: token}));
@@ -116,7 +110,6 @@ app.use(upload());
 
 app.post('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
     let user = req.user as UserLog;
-    console.log('user: ' + user._id);
     let id = user._id;
     try{
         if(!req.files) {
@@ -135,19 +128,21 @@ app.post('/gallery', passport.authenticate('jwt', {session: false}), async (req,
 });
 
 app.get('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    let user = req.user as UserLog;
+    let id = user._id as ObjectId;
                
-        const reqUrl = req.url;
-        const resObj = {
-            objects: [{}],
-            page: 0,
-            total: 0,
-        }
+    const reqUrl = req.url;
+    const resObj = {
+        objects: [{}],
+        page: 0,
+        total: 0,
+    }
 
-        try {
-            await sendResponse(resObj, reqUrl, res);
-        } catch (error) {
-            console.log(error);
-        }
+    try {
+        await sendResponse(resObj, reqUrl, res, id);
+    } catch (error) {
+        console.log(error);
+    }
         
 });
 
@@ -182,15 +177,15 @@ function sendNotFoundStatus (resObj: ResponseObject, res: http.ServerResponse) {
     return resObj;
 }
 
-async function sendResponse (resObj: ResponseObject, reqUrl: string, res: http.ServerResponse) {
+async function sendResponse (resObj: ResponseObject, reqUrl: string, res: http.ServerResponse, id: ObjectId) {
     
     pageOperations.getLimit(reqUrl);
-    await pageOperations.getTotal(resObj);
+    await pageOperations.getTotal(reqUrl, resObj, id);
     pageOperations.getCurrentPage(resObj, reqUrl);
 
     try {
         if (sendNotFoundStatus(resObj, res)) {
-            await pageOperations.getRequestedImages(resObj);
+            await pageOperations.getRequestedImages(reqUrl, resObj, id);
             res.statusCode = 200;
             res.end(JSON.stringify(resObj));
         }
@@ -203,34 +198,16 @@ async function getUploadedFileName(userId: ObjectId, file: UploadedFile, res: Re
     
     let fileName = file.name;
     let noSpaceFileName = fileName.replace(/\s/g, '');
-    let number = await pageOperations.getArrayLength() + 1;
-    let newFileName = 'user-' + number + '_' +  noSpaceFileName;
+    let newFileName = 'user' + '_' +  noSpaceFileName;
 
     file.mv((config.IMAGES_PATH + newFileName), async (err: Error) => {
     
         if(err){
             res.send (err);
         } else {
-            let id = (number - 1).toString();
             let path = newFileName;
-            console.log('file move: ' + userId);
-            await saveImages(id, path, userId);
+            await saveImages(path, userId);
             res.end(); 
         }
     })
 }
-
-// function checkToken (req: Request, res: Response, next: NextFunction) {
-//     const headers = req.headers;
-//     let token = headers.authorization as string;
-//     console.log('token: ' + token);
-//     let decoded = jwt_decode(token);
-//     console.log('DECODED: ' + decoded);
-
-//     if (headers.authorization === 'eyJhbGciOiJIUzI1NiJ9.YXNlcmdlZXZAZmxvLnRlYW0.fcyE6MYo2dgmse964dXxH289vkUIP8oXhQUTaHIVdJI') {  
-//         next();
-//     } else {
-//         res.sendStatus(403);
-//         next()
-//     }
-// }

@@ -136,3 +136,23 @@ a {
 .back-link--abled {
     display: inline;
 }
+
+.gallery-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.show-images {
+    cursor: pointer;
+    padding: 10px;
+    margin: 0;
+    background: #eedec1;
+    border: 2px solid #d6c19b;
+    color: #6e544b;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.show-images:active {
+    background-color: #cabeb1;
+}
