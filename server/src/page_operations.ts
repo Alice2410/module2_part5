@@ -17,19 +17,16 @@ async function getArrayLength (id: ObjectId, reqUrl: string) {
     const filter = url.parse(reqUrl, true).query.filter as string;
     
     let imagesObjectsArr;
-    if (filter === 'false') {
-        imagesObjectsArr = await Image.find({$or: [ {'owner': id}, {'owner': null}]}, null, {});
-        console.log('без фильтра');
-        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
+    let findFilter;
 
-        return imagesArr.length;
+    if (filter === 'true') {
+        findFilter = {'owner': id};
     } else {
-        imagesObjectsArr = await Image.find({'owner': id}, null, {});
-        console.log('с фильтром');
-        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
-
-        return imagesArr.length;
+        findFilter = {$or: [{'owner': id}, {'owner': null}]}
     }
+
+    imagesObjectsArr = await Image.find(findFilter, null, {});
+    return imagesObjectsArr.length;
 }
 
 export async function getImagesArr() { 

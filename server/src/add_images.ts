@@ -10,6 +10,7 @@ export async function saveImagesToDB(path?: string, userID?: ObjectId) {
     if( path && userID) {
         let owner = userID;
         let result = await addImage(path, owner);
+        console.log(result);
     } else {
     
     for(const imgPath of imagesPathsArr) {
@@ -34,10 +35,6 @@ export async function addImage (imagePath: string, owner?: ObjectId) {
     let image: ImageInterface;
     let metadata = await getMetadata(imagePath);
 
-    if (!owner) {
-        
-        return image = await Image.create({path: imagePath, metadata: metadata, owner: null});
-    } else {
-        return image = await Image.create({path: imagePath, metadata: metadata, owner: owner});
-    }
+    return image = await Image.create({path: imagePath, metadata: metadata, owner: owner ?? null});
+
 }

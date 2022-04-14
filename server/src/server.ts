@@ -6,15 +6,14 @@ import fs from "fs";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt'
+import { checkUser } from "./check_valid";
 import express, { Response } from "express";
 import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
 import { User } from './models/user';
 import { UserLog } from './interfaces';
-import { saveUser } from "./add_users";
 import { saveImagesToDB } from "./add_images";
 import { ResponseObject } from "./interfaces";
-import { deleteUserImages } from "./delete_images";
 import { accessLogStream } from "./generator";
 import passport from "passport";
 import LocalPassport from "passport-local";
@@ -38,19 +37,12 @@ startServer();
 passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"},
     async function(email, password, done) {  
         try {
-            const userIsExist = await User.exists({email: email});
-            
-            if(userIsExist) {
-                const userData = await User.findOne({email: email}) as UserLog;
-                console.log(userData)
-                const validPassword = userData.password;
-                const userSalt = userData.salt;
-                const userPassword = await bcrypt.hash(password, userSalt); 
-                if (userPassword === validPassword) {
+            let isValid = await checkUser(email, password);
+
+                if (isValid) {
                     return done(null, { user: email });
                 }
-            } 
-
+            
             return done(null, false);
 
         } catch(err) {
@@ -87,14 +79,13 @@ app.use(express.json());
 app.post('/signup', async (req, res) => {
 
     let result = await addNewUser(req.body);
+    let status = 401;
+
     if (result) { 
-
-        res.sendStatus(200);
+        status = 200;
     } 
-    if (!result) {
 
-        res.sendStatus(401);
-    }
+    res.sendStatus(status);
     
 });
 
@@ -157,7 +148,8 @@ async function startServer() {
     console.log('start server');
     await connectToDB();
     // await deleteUserImages();
-    await saveUser();
+    // await saveUser();
+    await addNewUser();
     await saveImagesToDB();
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
