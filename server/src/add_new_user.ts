@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt'
 import { UserLog } from './interfaces';
 import { validUsers} from './valid_users'
 
+
 export async function addNewUser(reqBody?: UserLog) {
     
     try {
@@ -11,7 +12,8 @@ export async function addNewUser(reqBody?: UserLog) {
             let email = reqBody.email;
             let password = reqBody.password;
             let result = await createUserInDB(email, password);
-            return result
+
+            return result;
         } else {
             console.log('adding default users')
             for (const email in validUsers) {

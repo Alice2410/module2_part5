@@ -85,14 +85,13 @@ app.use(express.json());
 app.post('/signup', async (req, res) => {
 
     let result = await addNewUser(req.body);
+    let status = 401;
+    
     if (result) { 
-
-        res.sendStatus(200);
+        status = 200;
     } 
-    if (!result) {
 
-        res.sendStatus(401);
-    }
+    res.sendStatus(status);
     
 });
 

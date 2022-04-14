@@ -20,15 +20,13 @@ async function getArrayLength (id: ObjectId, reqUrl: string) {
     if (filter === 'false') {
         imagesObjectsArr = await Image.find({$or: [ {'owner': id}, {'owner': null}]}, null, {});
         console.log('без фильтра');
-        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
-
-        return imagesArr.length;
+        
+        return imagesObjectsArr.length;
     } else {
         imagesObjectsArr = await Image.find({'owner': id}, null, {});
         console.log('с фильтром');
-        let imagesArr = makeImagesPathsArr(imagesObjectsArr);
-
-        return imagesArr.length;
+        
+        return imagesObjectsArr.length;
     }
 }
 
