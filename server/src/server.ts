@@ -11,10 +11,8 @@ import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
 import { User } from './models/user';
 import { UserLog } from './interfaces';
-import { saveUser } from "./add_users";
 import { saveImagesToDB } from "./add_images";
 import { ResponseObject } from "./interfaces";
-import { deleteUserImages } from "./delete_images";
 import { accessLogStream } from "./generator";
 import passport from "passport";
 import LocalPassport from "passport-local";
@@ -157,7 +155,8 @@ async function startServer() {
     console.log('start server');
     await connectToDB();
     // await deleteUserImages();
-    await saveUser();
+    // await saveUser();
+    await addNewUser();
     await saveImagesToDB();
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

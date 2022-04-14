@@ -1,4 +1,3 @@
-import { url } from "inspector";
 import { Token, basicGalleryURL, Gallery, tokenTimestampKey, localStorageTokenKey, ImageObject } from "./url.js";
 const linksList = document.getElementById('links');
 const uploadImageForm = document.getElementById('upload') as HTMLFormElement;
