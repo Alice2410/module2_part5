@@ -1,7 +1,5 @@
 import * as http from "http";
 
-export {getCurrentUrl};
-
 function getCurrentUrl (req: http.IncomingMessage) {
     let currentUrl = 'http://' + req.headers.host + req.url;
 
@@ -11,3 +9,5 @@ function getCurrentUrl (req: http.IncomingMessage) {
 
     return currentUrl;
 }
+
+export {getCurrentUrl};

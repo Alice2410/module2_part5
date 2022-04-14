@@ -26,7 +26,6 @@ email.addEventListener( 'input', function () {
             console.log (`Element ${errorEmail} is not exist`)
         }
     }
-
 })
 
 password.addEventListener( 'input', function () { 

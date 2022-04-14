@@ -1,133 +1,194 @@
 import * as http from "http";
-import * as rfs from "rotating-file-stream";
 import * as config from "./config";
 import * as pageOperations from './page_operations';
 import morgan from "morgan";
+import fs from "fs";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import express, {NextFunction, Request, Response} from "express";
+import * as bcrypt from 'bcrypt'
+import express, { Response } from "express";
 import upload, { UploadedFile } from "express-fileupload";
-import { checkUser } from './check_valid';
+import { addNewUser } from "./add_new_user";
+import { User } from './models/user';
+import { UserLog } from './interfaces';
 import { saveUser } from "./add_users";
-import { saveImages } from "./add_images";
-import { responseObj } from "./page_operations";
+import { saveImagesToDB } from "./add_images";
+import { ResponseObject } from "./interfaces";
 import { deleteUserImages } from "./delete_images";
+import { accessLogStream } from "./generator";
+import passport from "passport";
+import LocalPassport from "passport-local";
+import jwt from "jsonwebtoken";
+import passportJWT from "passport-jwt";
+import { ObjectId } from "mongodb";
+import path from "path";
 
-const token = { token: "token" };
 const PORT = 5000;
 const app = express();
 
+const LocalStrategy = LocalPassport.Strategy;
+const JWTStrategy = passportJWT.Strategy;
+const ExtractJWT = passportJWT.ExtractJwt;
+
 dotenv.config()
 const dbURL = process.env.DB_CONN as string;
+
+startServer();
+
+passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"},
+    async function(email, password, done) {  
+        try {
+            const userIsExist = await User.exists({email: email});
+            
+            if(userIsExist) {
+                const userData = await User.findOne({email: email}) as UserLog;
+                console.log(userData)
+                const validPassword = userData.password;
+                const userSalt = userData.salt;
+                const userPassword = await bcrypt.hash(password, userSalt); 
+                if (userPassword === validPassword) {
+                    return done(null, { user: email });
+                }
+            } 
+
+            return done(null, false);
+
+        } catch(err) {
+            let error = err as Error;
+            console.log(error.message)
+        }
+    }
+));
+
+passport.use(new JWTStrategy({
+    jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.TOKEN_KEY,
+  },
+   async function (jwtPayload, done) {
+    let email = jwtPayload.sub;
+    let user = await User.findOne({email: email})
+
+    if (user) {
+        return done(null, user);
+    }
+
+    return done(null, false)
+  }
+))
+
+app.use(passport.initialize());
+
+app.use(morgan('tiny', { stream: accessLogStream }));
+
+app.use('/', express.static(config.SCRIPTS_STATIC_PATH), express.static(config.SOURCES_STATIC_PATH));
+
+app.use(express.json());
+
+app.post('/signup', async (req, res) => {
+
+    let result = await addNewUser(req.body);
+    if (result) { 
+
+        res.sendStatus(200);
+    } 
+    if (!result) {
+
+        res.sendStatus(401);
+    }
+    
+});
+
+app.post('/authorization', passport.authenticate('local', {
+    session:false
+}), async (req, res) => {
+    const tokenKey = process.env.TOKEN_KEY as string;
+    let token = jwt.sign({sub: req.body.email}, tokenKey);
+
+    res.statusCode = 200;
+    res.end(JSON.stringify({token: token}));
+    
+});
+
+app.use(upload());
+
+app.post('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    let user = req.user as UserLog;
+    let id = user._id;
+    try{
+        if(!req.files) {
+            throw new Error('Ошибка загрузки. Картинка не сохранена');
+        } else {
+            let file = req.files.file as UploadedFile;
+            if(id) {
+                await getUploadedFileName(id, file, res);
+            }
+        }
+    } catch(err) {
+        let error = err as Error;
+        res.status(500).send(error);
+    }
+    
+});
+
+app.get('/gallery', passport.authenticate('jwt', {session: false}), async (req, res) => {
+    let user = req.user as UserLog;
+    let id = user._id as ObjectId;
+               
+    const reqUrl = req.url;
+    const resObj = {
+        objects: [{}],
+        page: 0,
+        total: 0,
+    }
+
+    try {
+        await sendResponse(resObj, reqUrl, res, id);
+    } catch (error) {
+        console.log(error);
+    }
+        
+});
+
+app.use((req, res) => {
+    res.redirect('http://localhost:5000/404.html');
+});
+
+async function startServer() {
+    console.log('start server');
+    await connectToDB();
+    // await deleteUserImages();
+    await saveUser();
+    await saveImagesToDB();
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+}
 
 async function connectToDB() {
     await mongoose.connect(dbURL);
     console.log('connected to DB'); 
 }
 
-connectToDB()
-.then(() => deleteUserImages())
-.then(() => {
-    saveUser();
-    saveImages();
-})
-
-
-const generator = () => {
-    let ISOTime = (new Date(Date.now())).toISOString().slice(0, -5).replace( /[T]/, '_');
-
-    return ISOTime;
-};
-
-let accessLogStream = rfs.createStream( generator, {
-    interval: '1h',
-    path: config.LOG_PATH,
-});
-
-app.use(morgan('tiny', { stream: accessLogStream }))
-
-app.use('/', express.static(config.SCRIPTS_STATIC_PATH), express.static(config.SOURCES_STATIC_PATH));
-
-app.use(express.json());
-
-app.post('/authorization', async (req, res) => {
-    let result = await checkUser(req.body);
-    if (result) { //проверка данных пользователя
-
-        res.statusCode = 200;
-        res.end(JSON.stringify(token));
-    } else {
-
-        res.sendStatus(403);
-    }
-    
-})
-
-app.use(upload())
-
-app.use('/gallery', checkToken)
-
-app.post('/gallery', async (req, res) => {
-    
-    try{
-        if(!req.files) {
-            throw new Error('Ошибка загрузки. Картинка не сохранена')
-        } else {
-            
-            let file = req.files.file as UploadedFile;
-
-            await getUploadedFileName(file, res);
-        }
-    } catch(err) {
-        let error = err as Error
-        res.status(500).send(error);
-    }
-    
-});
-
-app.get('/gallery', async (req, res) => {
-               
-        const reqUrl = req.url;
-        const resObj = {
-            objects: [{}],
-            page: 0,
-            total: 0,
-        }
-
-        try {
-            await sendResponse(resObj, reqUrl, res);
-        } catch (error) {
-            console.log(error);
-        }
-        
-})
-
-app.use((req, res) => {
-    res.redirect('http://localhost:5000/404.html')
-})
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-function sendNotFoundStatus (resObj: responseObj, res: http.ServerResponse) {
+function sendNotFoundStatus (resObj: ResponseObject, res: http.ServerResponse) {
 
     if (!pageOperations.checkPage(resObj)) {
         res.statusCode = 404;
         res.end();
+
         return false;
     } 
 
     return resObj;
 }
 
-async function sendResponse (resObj: responseObj, reqUrl: string, res: http.ServerResponse) {
+async function sendResponse (resObj: ResponseObject, reqUrl: string, res: http.ServerResponse, id: ObjectId) {
     
     pageOperations.getLimit(reqUrl);
-    await pageOperations.getTotal(resObj);
+    await pageOperations.getTotal(reqUrl, resObj, id);
     pageOperations.getCurrentPage(resObj, reqUrl);
 
     try {
         if (sendNotFoundStatus(resObj, res)) {
-            await pageOperations.getRequestedImages(resObj);
+            await pageOperations.getRequestedImages(reqUrl, resObj, id);
             res.statusCode = 200;
             res.end(JSON.stringify(resObj));
         }
@@ -136,35 +197,33 @@ async function sendResponse (resObj: responseObj, reqUrl: string, res: http.Serv
     }
 }
 
-async function getUploadedFileName(file: UploadedFile, res: Response) {
+async function getUploadedFileName(userId: ObjectId, file: UploadedFile, res: Response) {
     
     let fileName = file.name;
     let noSpaceFileName = fileName.replace(/\s/g, '');
-    let number = await pageOperations.getArrayLength() + 1;
-
-    let newFileName = 'user-' + number + '_' +  noSpaceFileName;
+    let newFileName = 'user' + '_' +  noSpaceFileName;
 
     file.mv((config.IMAGES_PATH + newFileName), async (err: Error) => {
     
         if(err){
             res.send (err);
         } else {
-            // await saveImages();
-            let id = (number - 1).toString();
             let path = newFileName;
-            await saveImages(id, path);
-            res.end() 
+            await saveImagesToDB(path, userId);
+            res.end(); 
         }
+        console.log((config.IMAGES_PATH + newFileName), path.join(config.IMAGES_PATH, "../../../../storage/", ));
+        console.log('saved')
+        await copyImage(newFileName)
     })
+
+    
 }
 
-function checkToken (req: Request, res: Response, next: NextFunction) {
-    const headers = req.headers;
-
-    if (headers.authorization === 'token') {  
-        next()
-    } else {
-        res.sendStatus(403);
-        next()
-    }
+async function copyImage(fileName: string) {
+    let from = path.join(config.IMAGES_PATH , fileName);
+    let dest = path.join(config.IMAGES_PATH, "../../../../storage/", fileName);
+    console.log('from: ' + from);
+    console.log('dest: ' + dest);
+    await fs.promises.copyFile(from, dest);
 }

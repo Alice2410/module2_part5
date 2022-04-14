@@ -1,14 +1,18 @@
+import { url } from "inspector";
 import { Token, basicGalleryURL, Gallery, tokenTimestampKey, localStorageTokenKey, ImageObject } from "./url.js";
 const linksList = document.getElementById('links');
 const uploadImageForm = document.getElementById('upload') as HTMLFormElement;
 const uploadFile = document.getElementById("file") as HTMLInputElement;
+const filterButton = document.getElementById("filter-button") as HTMLButtonElement;
 let formData = new FormData();
 let tokenObject: Token;
 
 setInterval(checkTokenIs, 1000);
 checkLocalStorage();
 goToNewGalleryPage();
+renderButton();
 linksList?.addEventListener("click", createNewAddressOfCurrentPage);
+filterButton?.addEventListener("click", changeFilter);
 uploadImageForm?.addEventListener("submit", startUpload);
 
 function startUpload(e: Event) {
@@ -26,13 +30,13 @@ async function goToNewGalleryPage() {
                 method: "GET",
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': tokenObject.token
+                    'Authorization': 'Bearer ' + tokenObject.token
                 }
             }
         );
         
         checkResponse(response);
-        let responseObj = await response.json();
+        let responseObj: Gallery = await response.json();
         createLinks(responseObj);
         createImages(responseObj);
     } catch(error) {
@@ -43,21 +47,21 @@ async function goToNewGalleryPage() {
 }
 
 async function uploadImage() {
-    //-------------POST FOR PICS
     let postUrl = '/gallery';
+
     if (uploadFile.files) {
+
         for (const file of uploadFile.files) {
             formData.append("file", file);
         }
     }
     
-
     try {
-        const response = await fetch( postUrl,
+        await fetch( postUrl,
             {
                 method: "POST",
                 headers: {
-                    'Authorization': tokenObject.token
+                    'Authorization': 'Bearer ' + tokenObject.token
                 },
                 body: formData
             }
@@ -71,8 +75,6 @@ async function uploadImage() {
         console.log(err.message);
     }
 }
-
-
 
 function createLinks(imagesObject: Gallery){
     let totalPages = imagesObject.total;
@@ -89,17 +91,14 @@ function createLinks(imagesObject: Gallery){
 
 function createImages(imagesObject: Gallery) {
         let imagesObjArray = imagesObject.objects;
-        let imagesPathArr: string[] = [];
-        for (let i = 0; i < imagesObjArray.length; i++) {
-            let imageObject: ImageObject = imagesObjArray[i];
-            let imagePath = imageObject.path;
-            imagesPathArr.push(imagePath);
-        }
+        let imagesPathsArr = imagesObjArray.map(imageObject => imageObject.path);
+
         let imageSection = document.getElementById("photo-section");
 
-        for ( let i = 0; i < imagesPathArr.length; i++) {
+        for (const imgPath of imagesPathsArr) {
             let galleryImage = document.createElement('img');
-            galleryImage.src = './resources/images/' + imagesPathArr[i];
+            
+            galleryImage.src = './resources/images/' + imgPath;
             imageSection?.append(galleryImage);
         }
 }
@@ -126,7 +125,7 @@ function checkResponse (response: Response) {
 
     let errorMessage: string;
 
-    if (response.status === 403) {
+    if (response.status === 401) {
         errorMessage = "Токен некорректен или отсутствует. Повторите авторизацию."
         writeErrorMessage (errorMessage, response);
     } else if (response.status === 404) {
@@ -149,19 +148,18 @@ function checkLocalStorage () {
 function createNewAddressOfCurrentPage(e: Event) {
     let currentPage = window.location.href;
     let params = new URL(currentPage).searchParams;
-    let limit = params.get('limit');
-    let number = (e.target as HTMLLinkElement).textContent;
-    window.location.href = "gallery.html" + "?page=" + number + "&limit=" + limit;
+    let number = (e.target as HTMLLinkElement).textContent as string;
+    params.set('page', number);
+    window.location.href = "gallery.html?" + params;
 }
 
 function writeErrorMessage (message: string, response: Response) {
     const errorMessage = document.getElementById('error-message');
         if (errorMessage) {
             errorMessage.innerHTML = message;
-            
             const toAuthorizationLink = document.getElementById('back-gallery');
-            if (toAuthorizationLink) {
 
+            if (toAuthorizationLink) {
                 toAuthorizationLink.classList.remove('back-link--disabled');
                 toAuthorizationLink.classList.add('aback-link--abled');
                 toAuthorizationLink.addEventListener("click", redirectToAuthorization);
@@ -169,4 +167,28 @@ function writeErrorMessage (message: string, response: Response) {
         }  
     throw new Error(`${response.status} — ${response.body}`);
 }
-            
+    
+function changeFilter(e: Event) {
+    let currentPage = window.location.href;
+    let params = new URL(currentPage).searchParams;
+    let filter = params.get('filter');
+
+    if (filter === 'false'){
+        params.set('filter', 'true');
+        window.location.href = "gallery.html?" + params;
+    } 
+
+    if (filter === 'true'){ 
+        params.set('filter', 'false');
+        window.location.href = "gallery.html?" + params;
+    }
+}
+
+function renderButton() {
+    let filter = new URL(window.location.href).searchParams.get('filter');
+    if (filter === 'true'){
+        filterButton.textContent = 'Показать все картинки';
+    } else {
+        filterButton.textContent = 'Показать мои картинки';
+    }
+}

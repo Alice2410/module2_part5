@@ -1,25 +1,25 @@
 import { Image } from './models/image';
+import { ImageInterface } from './interfaces';
 import { getImagesArr } from './page_operations';
 import { getMetadata } from './get_metadata';
+import { ObjectId } from 'mongodb';
 
-export async function saveImages(id?: string, path?: string) {
+export async function saveImagesToDB(path?: string, userID?: ObjectId) {
     let imagesPathsArr = await getImagesArr();
-    if( id && path) {
-        let result = await addImage(id, path);
-        console.log(result)
+
+    if( path && userID) {
+        let owner = userID;
+        let result = await addImage(path, owner);
     } else {
     
-    for(let i = 0; i < imagesPathsArr.length; i++) {
-        console.log(i);
-        
-        let imageIsExist = await Image.exists({id: i});
+    for(const imgPath of imagesPathsArr) {
+        let imageIsExist = await Image.exists({path: imgPath});
 
         if(!imageIsExist) {
             try{
-                let imagePath = imagesPathsArr[i];
-                let id = i.toString();
-                let image = await addImage(id, imagePath)
-                console.log('image obj: ' + image)
+
+                let image = await addImage(imgPath);
+                
             } catch(err) {
                 let error = err as Error;
                 console.log(error.message)
@@ -30,8 +30,14 @@ export async function saveImages(id?: string, path?: string) {
 }
 
     
-export async function addImage (id: string, imagePath: string) {
+export async function addImage (imagePath: string, owner?: ObjectId) {
+    let image: ImageInterface;
     let metadata = await getMetadata(imagePath);
-    let image = await Image.create({id: id, path: imagePath, metadata: metadata})
-    return image;
+
+    if (!owner) {
+        
+        return image = await Image.create({path: imagePath, metadata: metadata, owner: null});
+    } else {
+        return image = await Image.create({path: imagePath, metadata: metadata, owner: owner});
+    }
 }
