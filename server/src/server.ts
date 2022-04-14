@@ -6,6 +6,7 @@ import fs from "fs";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt'
+import { checkUser } from "./check_valid";
 import express, { Response } from "express";
 import upload, { UploadedFile } from "express-fileupload";
 import { addNewUser } from "./add_new_user";
@@ -36,19 +37,12 @@ startServer();
 passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"},
     async function(email, password, done) {  
         try {
-            const userIsExist = await User.exists({email: email});
-            
-            if(userIsExist) {
-                const userData = await User.findOne({email: email}) as UserLog;
-                console.log(userData)
-                const validPassword = userData.password;
-                const userSalt = userData.salt;
-                const userPassword = await bcrypt.hash(password, userSalt); 
-                if (userPassword === validPassword) {
+            let isValid = await checkUser(email, password);
+
+                if (isValid) {
                     return done(null, { user: email });
                 }
-            } 
-
+            
             return done(null, false);
 
         } catch(err) {
@@ -86,7 +80,7 @@ app.post('/signup', async (req, res) => {
 
     let result = await addNewUser(req.body);
     let status = 401;
-    
+
     if (result) { 
         status = 200;
     } 
