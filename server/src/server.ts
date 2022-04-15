@@ -5,7 +5,6 @@ import morgan from "morgan";
 import fs from "fs";
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import * as bcrypt from 'bcrypt'
 import { checkUser } from "./check_valid";
 import express, { Response } from "express";
 import upload, { UploadedFile } from "express-fileupload";
@@ -39,11 +38,7 @@ passport.use(new LocalStrategy({usernameField:"email", passwordField:"password"}
         try {
             let isValid = await checkUser(email, password);
 
-                if (isValid) {
-                    return done(null, { user: email });
-                }
-            
-            return done(null, false);
+            return isValid ? done(null, { user: email }) : done(null, false);
 
         } catch(err) {
             let error = err as Error;
@@ -60,11 +55,7 @@ passport.use(new JWTStrategy({
     let email = jwtPayload.sub;
     let user = await User.findOne({email: email})
 
-    if (user) {
-        return done(null, user);
-    }
-
-    return done(null, false)
+    return user ? done(null, user) : done(null, false);
   }
 ))
 
@@ -79,11 +70,7 @@ app.use(express.json());
 app.post('/signup', async (req, res) => {
 
     let result = await addNewUser(req.body);
-    let status = 401;
-
-    if (result) { 
-        status = 200;
-    } 
+    let status = result ? 200 : 401;
 
     res.sendStatus(status);
     
@@ -147,8 +134,6 @@ app.use((req, res) => {
 async function startServer() {
     console.log('start server');
     await connectToDB();
-    // await deleteUserImages();
-    // await saveUser();
     await addNewUser();
     await saveImagesToDB();
 
@@ -215,7 +200,5 @@ async function getUploadedFileName(userId: ObjectId, file: UploadedFile, res: Re
 async function copyImage(fileName: string) {
     let from = path.join(config.IMAGES_PATH , fileName);
     let dest = path.join(config.IMAGES_PATH, "../../../../storage/", fileName);
-    console.log('from: ' + from);
-    console.log('dest: ' + dest);
     await fs.promises.copyFile(from, dest);
 }

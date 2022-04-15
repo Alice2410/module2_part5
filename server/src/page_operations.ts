@@ -15,18 +15,10 @@ function getLimit(reqURL: string) {
 
 async function getArrayLength (id: ObjectId, reqUrl: string) { 
     const filter = url.parse(reqUrl, true).query.filter as string;
-    
-    let imagesObjectsArr;
-    let findFilter;
+    const findFilter = (filter === 'true') ? {'owner': id} : {$or: [{'owner': id}, {'owner': null}]};
+    const imagesCount = await Image.countDocuments(findFilter);
 
-    if (filter === 'true') {
-        findFilter = {'owner': id};
-    } else {
-        findFilter = {$or: [{'owner': id}, {'owner': null}]}
-    }
-
-    imagesObjectsArr = await Image.find(findFilter, null, {});
-    return imagesObjectsArr.length;
+    return imagesCount;
 }
 
 export async function getImagesArr() { 
@@ -57,31 +49,16 @@ async function getRequestedImages(reqUrl: string , resObj: ResponseObject, id: O
    
     const page = resObj.page;
     const filter = url.parse(reqUrl, true).query.filter as string;
-    let arrForPage;
+    const findFilter = (filter === 'true') ? {'owner': id} : {$or: [{'owner': id}, {'owner': null}]};
+    const arrForPage = await Image.find(findFilter, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
 
-    if (filter === "false") {
-        arrForPage = await Image.find({$or: [ {'owner': id}, {'owner': null}]}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
-    } else {
-        arrForPage = await Image.find({'owner': id}, null, {skip: picOnPage * page - picOnPage, limit: picOnPage});
-    }
-    
     resObj.objects = arrForPage as unknown as object[];
 
     return resObj;
 }
 
 function checkPage(resObj: ResponseObject) {
-    if ((resObj.page > 0) && (resObj.page <= resObj.total)) {
-        return resObj;
-    } 
-
-    return false;
-}
-
-function makeImagesPathsArr(imgObjectsArr: ImageInterface[]) {
-    let pathsArr = imgObjectsArr.map(imgObject => imgObject.path);
-
-    return pathsArr;
+    return ((resObj.page > 0) && (resObj.page <= resObj.total)) ? resObj : false;
 }
 
 export {getTotal, getCurrentPage, getLimit, getRequestedImages, checkPage, getArrayLength, ResponseObject};
